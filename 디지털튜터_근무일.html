@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko" style="--calendar-font-scale: 1;"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>디지털튜터선생님 근무일</title>
+  <style>
+    :root {
+      --calendar-font-scale: 1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7ff, #eef9f5);
+      color: #263238;
+    }
+
+    .container {
+      width: min(1200px, 94%);
+      margin: 0 auto;
+      padding: 36px 0 56px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .header h1 {
+      margin: 0 0 10px;
+      font-size: clamp(25px, 4vw, 42px);
+      color: #37474f;
+    }
+
+    .header p {
+      margin: 0;
+      color: #607d8b;
+      font-size: calc(15px * var(--calendar-font-scale));
+    }
+
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 20px auto 8px;
+      max-width: 760px;
+    }
+
+    .summary-item {
+      background: rgba(255,255,255,0.96);
+      border-radius: 16px;
+      padding: 16px 12px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(73, 91, 106, 0.09);
+    }
+
+    .summary-item strong {
+      display: block;
+      margin-top: 6px;
+      font-size: calc(22px * var(--calendar-font-scale));
+      color: #37474f;
+    }
+
+    .summary-item.remaining strong {
+      color: #1f8f70;
+    }
+
+    .summary-label {
+      font-size: calc(13px * var(--calendar-font-scale));
+      color: #78909c;
+      font-weight: 700;
+    }
+
+    .holiday-label {
+      position: absolute;
+      left: 3px;
+      right: 3px;
+      bottom: 5px;
+      font-size: 8px;
+      line-height: 1.1;
+      font-weight: 800;
+      color: #c62828;
+      text-align: center;
+      white-space: normal;
+      pointer-events: none;
+    }
+
+    .day.holiday {
+      background: #ffd6da;
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+    }
+
+    .day.holiday:hover {
+      background: #ffc2c8;
+    }
+
+    .day.checked.holiday {
+      color: white;
+    }
+
+    .day.checked .holiday-label {
+      color: #fff;
+    }
+
+    .day.has-holiday .schedule-note {
+      top: 39px;
+      bottom: 18px;
+      transform: none;
+    }
+
+    .day.has-holiday .date-number {
+      position: absolute;
+      top: 7px;
+      left: 0;
+      right: 0;
+    }
+
+    .day.has-holiday .work-hours {
+      bottom: 18px;
+    }
+
+    .schedule-note {
+      position: absolute;
+      left: 5px;
+      right: 5px;
+      top: 32px;
+      bottom: 19px;
+      font-size: calc(11px * var(--calendar-font-scale));
+      line-height: 1.25;
+      font-weight: 800;
+      color: #455a64;
+      overflow: hidden;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+      text-align: center;
+      pointer-events: none;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+
+    .schedule-note:empty {
+      display: none;
+    }
+
+    .day.checked .schedule-note {
+      color: rgba(255, 255, 255, 0.98);
+    }
+
+
+
+    .day .date-number {
+      display: block;
+      position: absolute;
+      top: 8px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: calc(15px * var(--calendar-font-scale));
+      font-weight: 800;
+    }
+
+    .day .work-hours {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 6px;
+      font-size: calc(10px * var(--calendar-font-scale));
+      font-weight: 800;
+      line-height: 1;
+      color: white;
+      text-align: center;
+    }
+
+    .day.checked .work-hours {
+      display: block;
+    }
+
+    .day.checked .date-number {
+      top: 7px;
+    }
+
+    .day.weekend {
+      background: #fff7f7;
+    }
+
+    .day.weekend:hover {
+      background: #ffecec;
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 620px) {
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0 28px;
+    }
+
+    .reset-button {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 20px;
+      background: #546e7a;
+      color: white;
+      font-size: calc(15px * var(--calendar-font-scale));
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(84, 110, 122, 0.2);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .reset-button:hover {
+      background: #455a64;
+      transform: translateY(-1px);
+    }
+
+    .font-control {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin: 14px auto 22px;
+      flex-wrap: wrap;
+    }
+
+    .font-control button {
+      border: none;
+      border-radius: 10px;
+      padding: 9px 14px;
+      background: #546e7a;
+      color: white;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .font-control button:hover {
+      background: #455a64;
+    }
+
+    .font-size-status {
+      min-width: 74px;
+      text-align: center;
+      color: #607d8b;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+    }
+
+    .calendar {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(73, 91, 106, 0.11);
+    }
+
+
+    .month-total {
+      margin-top: 14px;
+      padding: 11px 12px;
+      border-radius: 12px;
+      background: #f0f7f4;
+      text-align: center;
+      font-size: calc(14px * var(--calendar-font-scale));
+      font-weight: 800;
+      color: #2f6f5f;
+      border: 1px solid #d9eee7;
+    }
+
+
+    .save-panel {
+      position: fixed;
+      top: 120px;
+      right: 18px;
+      width: 210px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 12px 30px rgba(73, 91, 106, 0.18);
+      z-index: 1000;
+      border: 1px solid #e4ecef;
+    }
+
+    .save-panel h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      text-align: center;
+      color: #37474f;
+    }
+
+    .save-button {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 11px 10px;
+      margin-top: 8px;
+      font-size: calc(13px * var(--calendar-font-scale));
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .save-button:hover {
+      transform: translateY(-1px);
+      opacity: 0.92;
+    }
+
+    .save-button.readonly {
+      background: #546e7a;
+      color: #fff;
+    }
+
+    .save-button.editable {
+      background: #35a985;
+      color: #fff;
+    }
+
+    .save-status {
+      min-height: 18px;
+      margin: 8px 0 0;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      color: #2f6f5f;
+    }
+
+    .save-note {
+      margin: 10px 0 0;
+      font-size: calc(11px * var(--calendar-font-scale));
+      line-height: 1.45;
+      color: #78909c;
+      text-align: center;
+    }
+
+    @media (max-width: 1450px) {
+      .save-panel {
+        position: static;
+        width: min(760px, 100%);
+        margin: 0 auto 20px;
+      }
+
+      .save-panel-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .save-button {
+        margin-top: 0;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .save-panel-buttons {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .hours-menu {
+      max-width: 760px;
+      margin: 18px auto 6px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.97);
+      box-shadow: 0 10px 24px rgba(73, 91, 106, 0.11);
+    }
+
+    .hours-menu-title {
+      margin: 0 0 13px;
+      text-align: center;
+      font-size: 18px;
+      color: #37474f;
+    }
+
+    .hours-progress {
+      height: 16px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e8eef1;
+    }
+
+    .hours-progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #52c7a2, #35a985);
+      transition: width 0.25s ease;
+    }
+
+    .hours-progress-text {
+      margin-top: 10px;
+      text-align: center;
+      font-size: calc(14px * var(--calendar-font-scale));
+      font-weight: 700;
+      color: #607d8b;
+    }
+
+    .month-title {
+      text-align: center;
+      font-size: calc(22px * var(--calendar-font-scale));
+      font-weight: 800;
+      margin-bottom: 16px;
+      color: #37474f;
+    }
+
+    .weekdays,
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 7px;
+    }
+
+    .weekday {
+      text-align: center;
+      font-size: calc(13px * var(--calendar-font-scale));
+      font-weight: 700;
+      padding: 7px 0;
+      color: #78909c;
+    }
+
+    .weekday.sunday,
+    .day.sunday {
+      color: #e35d6a;
+    }
+
+    .weekday.saturday,
+    .day.saturday {
+      color: #4d79d8;
+    }
+
+    .day,
+    .empty-day {
+      aspect-ratio: auto;
+      min-height: 88px;
+    }
+
+    .day {
+      position: relative;
+      border: none;
+      border-radius: 13px;
+      background: #f7f9fb;
+      font-size: calc(15px * var(--calendar-font-scale));
+      font-weight: 700;
+      cursor: pointer;
+      color: #455a64;
+      transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .day:hover {
+      transform: translateY(-2px);
+      background: #e8f1ff;
+    }
+
+    .day.checked {
+      background: linear-gradient(135deg, #52c7a2, #35a985);
+      color: white;
+      box-shadow: 0 6px 14px rgba(53, 169, 133, 0.28);
+    }
+
+
+    .legend {
+      margin-top: 24px;
+      text-align: center;
+      color: #607d8b;
+      font-size: calc(14px * var(--calendar-font-scale));
+    }
+
+    @media (max-width: 800px) {
+      .calendar-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .calendar {
+        padding: 16px;
+      }
+
+      .day,
+      .empty-day {
+        min-height: 82px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .weekdays,
+      .days {
+        gap: 4px;
+      }
+
+      .day {
+        border-radius: 10px;
+        font-size: calc(14px * var(--calendar-font-scale));
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside class="save-panel" id="savePanel">
+    <h2>현재 체크 내용 저장</h2>
+    <div class="save-panel-buttons">
+      
+      
+    </div>
+    <p class="save-note">저장 당시의 체크 날짜와 근무시간 정보입니다.</p>
+    <p class="save-status" id="saveStatus">파일이 저장되었습니다.</p>
+  </aside>
+
+  <main class="container"><div style="max-width: 760px; margin: 0px auto 20px; padding: 12px 16px; border-radius: 12px; background: rgb(255, 243, 205); color: rgb(122, 91, 0); text-align: center; font-weight: 700;">저장 당시의 근무일 확인용 파일입니다. 날짜를 수정할 수 없습니다.</div>
+    <section class="header">
+      <h1>디지털튜터선생님 근무일</h1>
+      <p>월~목은 3시간, 금요일은 2시간으로 계산됩니다.</p>
+    </section>
+
+    <section class="summary">
+      <div class="summary-item">
+        <span class="summary-label">2학기 총 근무시간</span>
+        <strong>176시간</strong>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">체크한 근무시간</span>
+        <strong id="usedHours">153시간</strong>
+      </div>
+      <div class="summary-item remaining">
+        <span class="summary-label">남은 근무시간</span>
+        <strong id="remainingHours" style="color: rgb(31, 143, 112);">23시간</strong>
+      </div>
+    </section>
+
+    <section class="hours-menu" aria-label="근무시간 현황">
+      <h2 class="hours-menu-title">근무시간 현황</h2>
+      <div class="hours-progress">
+        <div class="hours-progress-bar" id="hoursProgressBar" style="width: 86.9318%;"></div>
+      </div>
+      <div class="hours-progress-text" id="hoursProgressText">총 176시간 중 153시간 근무 · 23시간 남음</div>
+    </section>
+
+    <div class="font-control" aria-label="달력 글씨 크기 조절">
+      <button type="button" onclick="changeCalendarFont(-0.1)">글씨 작게</button>
+      <span class="font-size-status" id="fontSizeStatus">100%</span>
+      <button type="button" onclick="changeCalendarFont(0.1)">글씨 크게</button>
+      <button type="button" onclick="resetCalendarFont()">기본 크기</button>
+    </div>
+
+    <section class="calendar-grid" id="calendarGrid"><article class="calendar"><div class="month-title">2026년 8월</div><div class="weekdays"><div class="weekday sunday">일</div><div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday saturday">토</div></div><div class="days"><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">1</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">2</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">3</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">4</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">5</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">6</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">7</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">8</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">9</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">10</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">11</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">12</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">13</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">14</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday holiday has-holiday weekend" title="광복절" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">15</span><span class="holiday-label">광복절</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">16</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day holiday has-holiday" title="광복절 대체공휴일" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">17</span><span class="holiday-label">광복절 대체공휴일</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">18</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">19</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">20</span><span class="work-hours">3시간</span><span class="schedule-note">5-7동아리</span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">21</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">22</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">23</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">24</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">25</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">26</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">27</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">28</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">29</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">30</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">31</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button></div><div class="month-total" id="month-total-2026-8">8월 근무시간 합계: 17시간</div></article><article class="calendar"><div class="month-title">2026년 9월</div><div class="weekdays"><div class="weekday sunday">일</div><div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday saturday">토</div></div><div class="days"><div class="empty-day"></div><div class="empty-day"></div><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">1</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">2</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">3</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">4</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">5</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">6</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">7</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">8</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">9</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">10</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">11</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">12</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">13</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">14</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">15</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">16</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">17</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">18</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">19</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">20</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">21</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">22</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">23</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day holiday has-holiday" title="추석 연휴" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">24</span><span class="holiday-label">추석 연휴</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day holiday has-holiday" title="추석" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">25</span><span class="holiday-label">추석</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday holiday has-holiday weekend" title="추석 연휴" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">26</span><span class="holiday-label">추석 연휴</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">27</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">28</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">29</span><span class="work-hours">3시간</span><span class="schedule-note">1차정기시험</span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">30</span><span class="work-hours">3시간</span><span class="schedule-note">1차정기시험</span></button></div><div class="month-total" id="month-total-2026-9">9월 근무시간 합계: 33시간</div></article><article class="calendar"><div class="month-title">2026년 10월</div><div class="weekdays"><div class="weekday sunday">일</div><div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday saturday">토</div></div><div class="days"><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">1</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">2</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday holiday has-holiday weekend" title="개천절" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">3</span><span class="holiday-label">개천절</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">4</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day holiday has-holiday" title="개천절 대체공휴일" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">5</span><span class="holiday-label">개천절 대체공휴일</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">6</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">7</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">8</span><span class="work-hours">3시간</span><span class="schedule-note">5-7동아리</span></button><button type="button" class="day holiday has-holiday" title="한글날" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">9</span><span class="holiday-label">한글날</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">10</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">11</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">12</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">13</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">14</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">15</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">16</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">17</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">18</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">19</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">20</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">21</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">22</span><span class="work-hours">3시간</span><span class="schedule-note">1-6교시 학교축제</span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">23</span><span class="work-hours">2시간</span><span class="schedule-note">1-6교시 체육행사</span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">24</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">25</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">26</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">27</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">28</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">29</span><span class="work-hours">3시간</span><span class="schedule-note">5-7교시 동아리</span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">30</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">31</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button></div><div class="month-total" id="month-total-2026-10">10월 근무시간 합계: 29시간</div></article><article class="calendar"><div class="month-title">2026년 11월</div><div class="weekdays"><div class="weekday sunday">일</div><div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday saturday">토</div></div><div class="days"><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">1</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">2</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">3</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">4</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">5</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">6</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">7</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">8</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">9</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">10</span><span class="work-hours">3시간</span><span class="schedule-note">2차 정기고사</span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">11</span><span class="work-hours">3시간</span><span class="schedule-note">2차 정기고사</span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">12</span><span class="work-hours">3시간</span><span class="schedule-note">2차 정기고사</span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">13</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">14</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">15</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">16</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">17</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">18</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">19</span><span class="work-hours">3시간</span><span class="schedule-note">대학수학능력시험</span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">20</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">21</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">22</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">23</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">24</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">25</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">26</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">27</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">28</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">29</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">30</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button></div><div class="month-total" id="month-total-2026-11">11월 근무시간 합계: 35시간</div></article><article class="calendar"><div class="month-title">2026년 12월</div><div class="weekdays"><div class="weekday sunday">일</div><div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday saturday">토</div></div><div class="days"><div class="empty-day"></div><div class="empty-day"></div><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">1</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">2</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">3</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">4</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">5</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">6</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">7</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">8</span><span class="work-hours">3시간</span><span class="schedule-note">2차 정기시험 1,2학년</span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">9</span><span class="work-hours">3시간</span><span class="schedule-note">2차 정기시험 1,2학년</span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">10</span><span class="work-hours">3시간</span><span class="schedule-note">2차 정기시험 1,2학년</span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">11</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">12</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">13</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">14</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">15</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">16</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">17</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">18</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">19</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">20</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">21</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">22</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">23</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">24</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day holiday has-holiday" title="성탄절" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">25</span><span class="holiday-label">성탄절</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">26</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">27</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">28</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">29</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">30</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">31</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button></div><div class="month-total" id="month-total-2026-12">12월 근무시간 합계: 33시간</div></article><article class="calendar"><div class="month-title">2027년 1월</div><div class="weekdays"><div class="weekday sunday">일</div><div class="weekday">월</div><div class="weekday">화</div><div class="weekday">수</div><div class="weekday">목</div><div class="weekday">금</div><div class="weekday saturday">토</div></div><div class="days"><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><div class="empty-day"></div><button type="button" class="day holiday has-holiday" title="신정" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">1</span><span class="holiday-label">신정</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">2</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">3</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">4</span><span class="work-hours">3시간</span><span class="schedule-note">5시간근무</span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">5</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day checked" aria-pressed="true" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">6</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">7</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">8</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">9</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">10</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">11</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">12</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">13</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">14</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">15</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">16</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">17</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">18</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">19</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">20</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">21</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">22</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">23</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">24</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">25</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">26</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">27</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">28</span><span class="work-hours">3시간</span><span class="schedule-note"></span></button><button type="button" class="day" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">29</span><span class="work-hours">2시간</span><span class="schedule-note"></span></button><button type="button" class="day saturday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">30</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button><button type="button" class="day sunday weekend" aria-pressed="false" disabled="disabled" style="cursor: default; pointer-events: none; transform: none;"><span class="date-number">31</span><span class="work-hours">0시간</span><span class="schedule-note"></span></button></div><div class="month-total" id="month-total-2027-1">1월 근무시간 합계: 6시간</div></article></section>
+
+    <div class="legend">월~목 3시간 · 금요일 2시간 · 일요일과 공휴일은 빨간색으로 표시됩니다. 날짜를 더블클릭하면 일정을 입력하거나 수정할 수 있습니다.<br>체크한 날짜는 현재 브라우저에 자동으로 저장됩니다.</div>
+  </main>
+
+  
+
+
+</body></html>
